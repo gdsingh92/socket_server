@@ -39,18 +39,28 @@ var connectionManager = new ConnectionManager();
 
              } else if (message.isData()) {
 
-                 targetId = message.getIdentifier();
-                 contents = message.getContents();
+                 message.isValid(function(err, valid) {
+                     if (!valid) {
+                         utils.log('Message ignored');
 
-                 // is connection for target available.
-                 if (connectionManager.get(targetId)) {
-                     connectionManager.get(targetId).write(contents);
-                 }
+                     } else {
+                         targetId = message.getIdentifier();
+                         contents = message.getContents();
 
-                 // send response
-                 response = new ResponseMessage(message.data);
-                 response.delivered();
-                 socket.write(response.getData());
+                         // is connection for target available.
+                         if (connectionManager.get(targetId)) {
+                             connectionManager.get(targetId).write(contents);
+
+                             // store message in db
+                             message.store(function() {
+                                 // send response
+                                 response = new ResponseMessage(message.data);
+                                 response.delivered();
+                                 socket.write(response.getData());
+                             });
+                         }
+                     }
+                 });
              }
 
          } catch(e) {

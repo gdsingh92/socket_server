@@ -1,13 +1,21 @@
 /*
  * Module defining message objects for sending and receiving messages
  */
+var redis = require('redis');
 var utils = require('./utils');
+
+var redisClient = redis.createClient({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379
+});
 
 // Message type showing new connection registration
 exports.TYPE_REGISTER = "REGISTER";
 
 // Message type showing new data
-exports.TYPE_SEND = "SEND"
+exports.TYPE_SEND = "SEND";
+
+exports.MESSAGE_EXPIRY = 300; // in seconds
 
 
 /**
@@ -55,6 +63,41 @@ IncomingMessage.prototype.getIdentifier = function() {
  */
 IncomingMessage.prototype.getContents = function() {
     return this.data.message;
+};
+
+/**
+ * Get store key of message
+ */
+IncomingMessage.prototype.getStoreKey = function() {
+    return this.getIdentifier() + "::" + this.getContents();
+};
+
+/**
+ * Check if message was sent less than 5 minutes ago
+ */
+IncomingMessage.prototype.isValid = function(callback) {
+    redisClient.exists(this.getStoreKey(), function(err, status) {
+        if (err) {
+            return callback(err);
+        }
+        return callback(null, !status);
+    });
+};
+
+/**
+ * Store incoming message to the list
+ */
+IncomingMessage.prototype.store = function(callback) {
+    var key = this.getStoreKey();
+    redisClient.set(key, true, function(err) {
+        if (err) {
+            return callback(err);
+        }
+
+        redisClient.expire(key, exports.MESSAGE_EXPIRY, function() {
+            return callback(null, true);
+        });
+    });
 };
 
 exports.IncomingMessage = IncomingMessage;
