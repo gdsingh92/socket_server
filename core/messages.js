@@ -79,3 +79,9 @@ ResponseMessage.prototype.delivered = function() {
     this.data.status = "delivered";
     this.data.description = "";
 };
+
+ResponseMessage.prototype.getData = function() {
+    return JSON.stringify(this.data);
+}
+
+exports.ResponseMessage = ResponseMessage;

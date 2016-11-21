@@ -24,14 +24,18 @@ var connectionManager = new ConnectionManager();
 
      // determine what kind of message it is and process it.
      socket.on('data', function(data) {
-         var message, result, targetId, contents;
+         var message, result, targetId, contents, response;
 
          try {
              message = new IncomingMessage(data.toString());
 
              if (message.isNewClient()) {
                  connectionManager.register(message.getIdentifier(), socket);
-                 // TODO: Build response and send.
+
+                 // send response
+                 response = new ResponseMessage(message.data);
+                 response.delivered();
+                 socket.write(response.getData());
 
              } else if (message.isData()) {
 
@@ -43,7 +47,10 @@ var connectionManager = new ConnectionManager();
                      connectionManager.get(targetId).write(contents);
                  }
 
-                 // TODO: Build response and send.
+                 // send response
+                 response = new ResponseMessage(message.data);
+                 response.delivered();
+                 socket.write(response.getData());
              }
 
          } catch(e) {
