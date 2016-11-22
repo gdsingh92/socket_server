@@ -4,27 +4,30 @@
 var Socket = require('net').Socket;
 var senderId = process.env.SENDER_ID || 'TestSender1';
 var targetId = process.env.TARGET_ID || 'TestSender2';
-var socket = new Socket()
+var socket = new Socket();
+
+var log = function(msg) {
+    console.log(senderId + ": " + msg);
+}
 
 socket.connect(8000, 'localhost', function() {
-    console.log('client connected');
-    function handleMessage() {}
+    log('Connection to server extablished. Registering!');
 
-    socket.write(JSON.stringify({'type': 'REGISTER', 'id': senderId}), function() {
+    var registerMessage = JSON.stringify({'type': 'REGISTER', 'id': senderId});
+    socket.write(registerMessage, function() {
+        log("Sent register message. Sending Hi Now!!");
 
-        setTimeout(function() {
-            var i = 1;
-            socket.write(JSON.stringify({
-                'type': 'SEND',
-                'id': targetId,
-                'message': 'This is '+ senderId +' , saying Hi for ' + i + ' time'
-            }), handleMessage);
-
-        }, 1000);
-
+        var hiMessage = JSON.stringify({
+            'type': 'SEND',
+            'id': targetId,
+            'message': 'This is '+ senderId +' , saying Hi'
+        });
+        socket.write(hiMessage, function() {
+            log("Hi message sent.");
+        });
     });
 });
 
 socket.on('data', function(data) {
-    console.log(senderId + "got: " + data.toString());
+    log(data.toString());
 });
